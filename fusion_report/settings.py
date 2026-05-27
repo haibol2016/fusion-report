@@ -17,9 +17,9 @@ class Settings:
         "NAME": "COSMIC",
         "HOSTNAME": "https://cancer.sanger.ac.uk/api/mono/products/v1/downloads/scripted",
         "SCHEMA": "Cosmic.sql",
-        "VERSION": "v104",
-        "TARFILE": "Cosmic_Fusion_Tsv_v104_GRCh38.tar",
-        "FILE": "Cosmic_Fusion_v104_GRCh38.tsv.gz",
+        "VERSION": "v101",
+        "TARFILE": "Cosmic_Fusion_Tsv_v101_GRCh38.tar",
+        "FILE": "Cosmic_Fusion_v101_GRCh38.tsv.gz",
     }
 
     FUSIONGDB2: Dict[str, str] = {
