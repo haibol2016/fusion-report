@@ -69,8 +69,10 @@ class Net:
             " -o {output_path}{cosmic_file}"
         )
         cmd = file_request.format(
-            token=token, file_id=file_id, output_path=output_path,
-            cosmic_file=Settings.COSMIC["FILE"]
+            token=token,
+            file_id=file_id,
+            output_path=output_path,
+            cosmic_file=Settings.COSMIC["FILE"],
         )
         Net.run_qiagen_cmd(cmd, True, True)
 
@@ -175,7 +177,9 @@ class Net:
             Net.get_large_file(download_url, no_ssl)
             Net.extract_tar(Settings.COSMIC["TARFILE"], ".")
             extracted_file = Net.extract_gz("." + "/" + Settings.COSMIC["FILE"])
-            renamed_file = os.path.join(os.path.dirname(extracted_file), "cosmic_fusion_v101_grch38.tsv")
+            renamed_file = os.path.join(
+                os.path.dirname(extracted_file), "cosmic_fusion_v101_grch38.tsv"
+            )
             os.rename(extracted_file, renamed_file)
             db = CosmicDB(".")
             db.setup([os.path.basename(renamed_file)], delimiter="\t", skip_header=True)
