@@ -17,7 +17,7 @@ class CosmicDB(Db, metaclass=Singleton):
         """Returns all fusions from database."""
         query: str = '''SELECT DISTINCT
                             FIVE_PRIME_GENE_SYMBOL || '--' || THREE_PRIME_GENE_SYMBOL AS fusion_pair
-                        FROM cosmicfusionexport
+                        FROM cosmic_fusion_v101_grch38
                         WHERE FIVE_PRIME_GENE_SYMBOL != "" AND THREE_PRIME_GENE_SYMBOL != ""'''
         res = self.select(query)
 

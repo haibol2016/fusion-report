@@ -175,7 +175,7 @@ class Net:
             Net.get_large_file(download_url, no_ssl)
             Net.extract_tar(Settings.COSMIC["TARFILE"], ".")
             extracted_file = Net.extract_gz("." + "/" + Settings.COSMIC["FILE"])
-            renamed_file = os.path.join(os.path.dirname(extracted_file), "cosmicfusionexport.tsv")
+            renamed_file = os.path.join(os.path.dirname(extracted_file), "cosmic_fusion_v101_grch38.tsv")
             os.rename(extracted_file, renamed_file)
             db = CosmicDB(".")
             db.setup([os.path.basename(renamed_file)], delimiter="\t", skip_header=True)
@@ -204,7 +204,7 @@ class Net:
             with gzip.open(file, "rb") as archive, open(files[0], "wb") as out_file:
                 shutil.copyfileobj(archive, out_file)
 
-            renamed_file = "cosmicfusionexport.tsv"
+            renamed_file = "cosmic_fusion_v101_grch38.tsv"
             os.rename(files[0], renamed_file)
             db = CosmicDB(".")
             db.setup([renamed_file], delimiter="\t", skip_header=True)
