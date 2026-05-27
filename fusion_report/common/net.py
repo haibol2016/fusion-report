@@ -175,8 +175,10 @@ class Net:
             Net.get_large_file(download_url, no_ssl)
             Net.extract_tar(Settings.COSMIC["TARFILE"], ".")
             extracted_file = Net.extract_gz("." + "/" + Settings.COSMIC["FILE"])
+            renamed_file = os.path.join(os.path.dirname(extracted_file), "cosmicfusionexport.tsv")
+            os.rename(extracted_file, renamed_file)
             db = CosmicDB(".")
-            db.setup([extracted_file.split("/")[-1]], delimiter="\t", skip_header=True)
+            db.setup([os.path.basename(renamed_file)], delimiter="\t", skip_header=True)
 
         except requests.exceptions.RequestException as req_err:
             return_err.append(f'{Settings.COSMIC["NAME"]}: {req_err}')
@@ -202,8 +204,10 @@ class Net:
             with gzip.open(file, "rb") as archive, open(files[0], "wb") as out_file:
                 shutil.copyfileobj(archive, out_file)
 
+            renamed_file = "cosmicfusionexport.tsv"
+            os.rename(files[0], renamed_file)
             db = CosmicDB(".")
-            db.setup(files, delimiter="\t", skip_header=True)
+            db.setup([renamed_file], delimiter="\t", skip_header=True)
         except Exception as ex:
             return_err.append(f'{Settings.COSMIC["NAME"]}: {ex}')
 
