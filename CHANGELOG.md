@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0]
+
+### Added
+
+- Added `createdb` command for building databases from local files, bypassing download URLs entirely
+- Added integration tests: minimal tests on every PR, COSMIC tests when credentials are available (skipped on forks)
+- Added more documentation
+
+### Changed
+
+- Updated COSMIC database API access to use the current endpoint
+- Fixed file parsing to handle input formats correctly
+
+### Removed
+
+- Removed unused `sync` command ([#69](https://github.com/Clinical-Genomics/fusion-report/issues/69))
+
 ## [4.0.2]
 
 ### Added
