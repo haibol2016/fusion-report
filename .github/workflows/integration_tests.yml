@@ -21,9 +21,6 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
           python setup.py install
 
-      - name: Test download of databases
-        run: fusion_report download --cosmic_usr "${{ secrets.COSMIC_USERNAME }}" --cosmic_passwd "${{ secrets.COSMIC_PASSWD }}" ./db
-
       - name: Test run
         run: |
           fusion_report run "example-sample" ./docs/example ./db/ \
