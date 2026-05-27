@@ -1,4 +1,4 @@
-CREATE TABLE "cosmic_fusion_v101_grch38" (
+CREATE TABLE "cosmic_fusion_v104_grch38" (
 	"COSMIC_SAMPLE_ID" integer NOT NULL,
 	"SAMPLE_NAME" varchar(50) NOT NULL DEFAULT '',
 	"COSMIC_PHENOTYPE_ID" varchar(50) NOT NULL DEFAULT '',

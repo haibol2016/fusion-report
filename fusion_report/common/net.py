@@ -66,9 +66,12 @@ class Net:
             '-H "Content-Type: application/octet-stream" '
             '-H "Authorization: Bearer {token}" '
             '"https://my.qiagendigitalinsights.com/bbp/data/download/cosmic-download?name={file_id}"'
-            " -o {output_path}Cosmic_Fusion_v101_GRCh38.tsv.gz"
+            " -o {output_path}{cosmic_file}"
         )
-        cmd = file_request.format(token=token, file_id=file_id, output_path=output_path)
+        cmd = file_request.format(
+            token=token, file_id=file_id, output_path=output_path,
+            cosmic_file=Settings.COSMIC["FILE"]
+        )
         Net.run_qiagen_cmd(cmd, True, True)
 
     @staticmethod
@@ -145,8 +148,7 @@ class Net:
         """Extracts a specific file from a tar archive."""
         try:
             with tarfile.open(file_path, "r:") as tar:
-                # Find the specific file
-                target_file = "Cosmic_Fusion_v101_GRCh38.tsv.gz"
+                target_file = Settings.COSMIC["FILE"]
                 if target_file in tar.getnames():
                     tar.extract(target_file, path=extract_to)
                     extracted_path = os.path.join(extract_to, target_file)
@@ -162,8 +164,7 @@ class Net:
     @staticmethod
     def get_cosmic_from_sanger(token: str, return_err: List[str], no_ssl, outputpath) -> None:
         """Downloads the COSMIC database from the Sanger website."""
-        file_name = "grch38/cosmic/v101/" + Settings.COSMIC["TARFILE"]
-        file_path = f"{file_name}"
+        file_path = f"grch38/cosmic/{Settings.COSMIC['VERSION']}/{Settings.COSMIC['TARFILE']}"
         try:
             download_url = Net.get_cosmic_from_sanger_url(token, file_path=file_path)
 
@@ -175,7 +176,7 @@ class Net:
             Net.extract_tar(Settings.COSMIC["TARFILE"], ".")
             extracted_file = Net.extract_gz("." + "/" + Settings.COSMIC["FILE"])
             db = CosmicDB(".")
-            db.setup([extracted_file.split("/")[-1]], delimiter="\t", skip_header=False)
+            db.setup([extracted_file.split("/")[-1]], delimiter="\t", skip_header=True)
 
         except requests.exceptions.RequestException as req_err:
             return_err.append(f'{Settings.COSMIC["NAME"]}: {req_err}')
