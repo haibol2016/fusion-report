@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added minimal CLI smoke tests in `tests/test_smoke_cli.py` covering `fusion_report --help`, `run --help`, `download --help`, and `createdb --help`.
 - Added Python-version guard in smoke tests so they skip on interpreters older than 3.12 and run normally on supported versions.
+- Added gene symbol canonicalization layer (`fusion_report/common/symbol_resolver.py`) that resolves HGNC aliases and deprecated symbols to approved gene names before database annotation.
+- Added `SymbolResolver` class that maintains a curated mapping of HGNC-approved gene symbols and known historical aliases.
+- Integrated symbol canonicalization into the `Fusion` model (`fusion_report/common/models/fusion.py`) to automatically resolve gene symbols during fusion instantiation.
+- Added symbol resolution metadata tracking in `Fusion.json_serialize()` to surface "resolved via alias" information in reports for transparency.
+- Added comprehensive test suite (`tests/test_symbol_canonicalization.py`) with 13 tests covering symbol resolution, alias mapping, case-insensitivity, and JSON serialization with resolution metadata.
+
 
 ### Removed
 
