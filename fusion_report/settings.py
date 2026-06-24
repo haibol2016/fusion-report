@@ -1,8 +1,26 @@
+"""Application settings and configuration constants."""
 import os
 from typing import Dict
 
 
 class Settings:
+    """Global application settings and database configuration.
+
+    Contains application metadata, fusion scoring weights, and configuration
+    details for supported databases (COSMIC, FusionGDB2, Mitelman).
+
+    Attributes:
+        ROOT_DIR: Absolute path to the fusion_report package directory.
+        DATE_FORMAT: Format string for date display (\"%d/%m/%Y\").
+        THREAD_NUM: Number of threads for parallel operations (default: 2).
+        VERSION: Application version string (\"4.1.2\").
+        FUSION_WEIGHTS: Dict mapping database names to their FII weight
+            contribution (cosmic: 0.50, mitelman: 0.50, fusiongdb2: 0.0).
+        COSMIC: COSMIC database configuration (name, API hostname, schema,
+            version, tarfile, and data file names).
+        FUSIONGDB2: FusionGDB2 database configuration.
+        MITELMAN: Mitelman database configuration.
+    """
     ROOT_DIR: str = os.path.dirname(os.path.abspath(__file__))
     DATE_FORMAT: str = "%d/%m/%Y"
     THREAD_NUM: int = 2

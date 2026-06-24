@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed package version metadata in `setup.py` by setting `version="4.1.2"` so built wheels no longer default to `0.0.0`.
 - Fixed database enrichment mapping in `fusion_report/app.py` so `--no-fusiongdb2` and `--no-mitelman` control the correct databases.
 - Fixed broken README links and badges by updating docs/demo URLs, CI badge URL, and Codacy badge image URL to currently reachable endpoints.
-- Fixed version mismatch in `docs/download.md` COSMIC manual commands (`v104` tar/extract/decompress sequence).
+- Fixed version mismatch in `docs/download.md` COSMIC manual commands (aligned all examples to v101 to match `Settings.COSMIC["VERSION"]`).
+- Fixed inverted SSL verify flag in `Net.get_large_file`: `no_ssl=True` now correctly disables certificate verification (`verify=not no_ssl`).
+- Fixed containerized `run` resilience so HGNC loading now degrades gracefully when live download fails due to TLS/CA issues by falling back to cached or bundled HGNC resources.
 
 ### Changed
 
@@ -32,16 +34,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Docker usage examples to `README.md`, `docs/usage.md`, `docs/download.md`, and `docs/createdb.md`.
 - Added a direct documentation index in `README.md` with links to all main docs files for easier navigation in GitHub.
 - Updated Docker examples to include `-u "$(id -u):$(id -g)"` so generated files are owned by the invoking host user.
+- Verified Docker image execution with `tests/test_data` and `--no-cosmic`: report generation completes with FusionGDB2+Mitelman enrichment while COSMIC is excluded.
 
 ### Added
 
 - Added minimal CLI smoke tests in `tests/test_smoke_cli.py` covering `fusion_report --help`, `run --help`, `download --help`, and `createdb --help`.
 - Added Python-version guard in smoke tests so they skip on interpreters older than 3.12 and run normally on supported versions.
-- Added gene symbol canonicalization layer (`fusion_report/common/symbol_resolver.py`) that resolves HGNC aliases and deprecated symbols to approved gene names before database annotation.
-- Added `SymbolResolver` class that maintains a curated mapping of HGNC-approved gene symbols and known historical aliases.
-- Integrated symbol canonicalization into the `Fusion` model (`fusion_report/common/models/fusion.py`) to automatically resolve gene symbols during fusion instantiation.
-- Added symbol resolution metadata tracking in `Fusion.json_serialize()` to surface "resolved via alias" information in reports for transparency.
-- Added comprehensive test suite (`tests/test_symbol_canonicalization.py`) with 13 tests covering symbol resolution, alias mapping, case-insensitivity, and JSON serialization with resolution metadata.
+- Added `SymbolResolver` class (`fusion_report/common/symbol_resolver.py`) that dynamically downloads the HGNC complete-set TSV at runtime with a four-level fallback chain: live download → local cache (`~/.cache/fusion-report/`) → bundled gzip snapshot (`fusion_report/data/hgnc/hgnc_complete_set.txt.gz`) → strict failure (opt-in via `FUSION_REPORT_HGNC_STRICT=1`). An alternative bundled path can be supplied via `FUSION_REPORT_HGNC_BUNDLED_PATH`.
+- Added pre-SQL HGNC resolution in `createdb.py`: all three database build paths (COSMIC, FusionGDB2, Mitelman) now resolve gene-pair symbols to stable HGNC IDs before inserting into SQLite, using Ensembl ID, Entrez ID, and chromosome hints where available. Per-source and combined mapping quality summaries are logged.
+- Added `hgnc_pairs` index table to all three SQLite databases, populated at build time with (gene1_hgnc_id, gene2_hgnc_id, source_pair) tuples for unambiguous runtime matching.
+- Added HGNC-pair-first matching in `App.enrich()`: fusions are matched against the `hgnc_pairs` index before falling back to legacy symbol-pair lookup.
+- Added Mitelman karyotype chromosome hint extraction and translocation-pair disambiguation in `createdb.py` to improve resolution of ambiguous gene symbols in Mitelman records.
+- Added Mitelman diagnostic report (`mitelman_hgnc_diagnostic_report.txt`) listing unresolved ambiguous symbols and non-unique translocation rows.
+- Added Ensembl gene ID extraction to parsers that support it (STAR-Fusion, CTAT-LR-Fusion, EricScript, FusionCatcher, Pizzly) for unambiguous HGNC resolution.
+- Added breakpoint-position-aware fusion deduplication: fusions with the same gene pair but different breakpoints are stored as separate entries with unique page titles.
+- Added `page_title` property to `Fusion` model for unique per-fusion HTML filenames that include breakpoint coordinates.
+- Added HGNC IDs and snapshot version to `Fusion.json_serialize()` output.
+- Integrated symbol canonicalization into the `Fusion` model to automatically resolve gene symbols during instantiation using chromosome and Ensembl hints from parser details.
+- Added bundled HGNC gzip snapshot (`fusion_report/data/hgnc/hgnc_complete_set.txt.gz`, 3.9 MB compressed) as package data for fully offline operation.
+- Added live-network integration tests (`tests/test_hgnc_download_integration.py`, `tests/test_fusiongdb2_download_integration.py`) gated behind `RUN_LIVE_NETWORK_TESTS=1`; tests skip gracefully when the network or TLS is unavailable.
+- Added `choices` parameter support in `ArgsBuilder` for `arguments.json`-defined CLI arguments.
+- Added comprehensive test suite (`tests/test_symbol_canonicalization.py`) with 28 tests covering HGNC fallback chain (bundled gzip, non-strict degraded mode, strict failure), symbol resolution, alias mapping, chromosome disambiguation, Ensembl-based resolution, case-insensitivity, and JSON serialization.
 
 
 ### Removed

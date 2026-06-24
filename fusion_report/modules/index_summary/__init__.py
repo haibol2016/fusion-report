@@ -1,0 +1,1 @@
+"""Index summary module package."""

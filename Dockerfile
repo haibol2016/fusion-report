@@ -1,8 +1,8 @@
 FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONUNBUFFERED=1 \
-	PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /build
 
@@ -12,19 +12,25 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml setup.py MANIFEST.in README.md requirements.txt ./
+# The HGNC snapshot (fusion_report/data/hgnc/hgnc_complete_set.txt.gz) is declared
+# as package_data in setup.py so it is bundled into the wheel by `pip wheel .`
+# and installed into site-packages/fusion_report/data/hgnc/ at runtime.
 COPY fusion_report ./fusion_report
 COPY bin ./bin
 
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
-
-RUN pip wheel --no-cache-dir --wheel-dir /wheels .
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt \
+    && pip wheel --no-cache-dir --wheel-dir /wheels .
 
 
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONUNBUFFERED=1 \
-	PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Optional HGNC resolver behaviour (see docs/download.md):
+#   FUSION_REPORT_HGNC_STRICT=1          – fail if HGNC cannot be loaded from any source
+#   FUSION_REPORT_HGNC_BUNDLED_PATH=...  – path to an alternative bundled HGNC gzip
 
 WORKDIR /app
 

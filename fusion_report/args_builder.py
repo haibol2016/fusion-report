@@ -18,6 +18,12 @@ class ArgsBuilder:
     """
 
     def __init__(self):
+        """Initialize the argument builder.
+
+        Loads command-line argument definitions from arguments.json and creates
+        the ArgumentParser with subparsers for \"run\", \"download\", and \"createdb\"
+        commands. Calculates per-tool weight based on number of supported tools.
+        """
         configuration = os.path.join(Settings.ROOT_DIR, "arguments.json")
         with open(configuration, "r") as config_file:
             self.arguments: Dict[str, Any] = json.load(config_file)
@@ -82,6 +88,7 @@ class ArgsBuilder:
                         optional["key"][1],
                         default=optional.get("default"),
                         help=optional.get("help"),
+                        choices=optional.get("choices"),
                         type=type(optional.get("default")),
                     )
             else:
@@ -97,6 +104,7 @@ class ArgsBuilder:
                         optional["key"][0],
                         default=optional.get("default"),
                         help=optional.get("help"),
+                        choices=optional.get("choices"),
                         type=type(optional.get("default")),
                     )
 

@@ -23,6 +23,12 @@ class Config:
     """
 
     def __init__(self) -> None:
+        """Initialize configuration with defaults.
+
+        Sets default report title, loads embedded logos (base64-encoded),
+        initializes institution and assets to empty, and sets date to today
+        in the configured format (default: "%d/%m/%Y").
+        """
         self._report_title: str = "nfcore/rnafusion summary report"
         self.logos: Dict[str, str] = self._load_logos()
         self._institution: Dict[str, Any] = {}
@@ -31,6 +37,16 @@ class Config:
 
     @staticmethod
     def _load_logos() -> Dict[str, str]:
+        """Load and base64-encode logo images.
+
+        Reads two logo images from the templates/assets/img directory
+        (fusion-report.png and rnafusion_logo.png) and returns them as
+        base64-encoded strings for embedding in HTML.
+
+        Returns:
+            Dict with 'main' and 'rnafusion' keys mapping to base64-encoded
+            image data.
+        """
         logos = {}
         paths = {
             "main": "templates/assets/img/fusion-report.png",
@@ -49,6 +65,12 @@ class Config:
 
     @report_title.setter
     def report_title(self, title: str) -> None:
+        """Set the report title.
+
+        Args:
+            title: New report title. Must be non-empty after stripping
+                whitespace. Ignored if empty.
+        """
         if title.strip():
             self._report_title = title.strip()
 
@@ -59,6 +81,17 @@ class Config:
 
     @institution.setter
     def institution(self, institution: Dict[str, str]) -> None:
+        """Set institution metadata including name, logo, and URL.
+
+        Loads the institution logo image (if path exists) and base64-encodes it.
+        Missing or invalid paths are silently ignored.
+
+        Args:
+            institution: Dict with optional keys:
+                - "name": Institution name (string)
+                - "img": Path to institution logo image file (path checked)
+                - "url": Institution website URL (string)
+        """
         if "name" in institution.keys():
             self._institution["name"] = institution["name"]
 
@@ -76,6 +109,13 @@ class Config:
 
     @date.setter
     def date(self, date_format: str) -> None:
+        """Set the report date using a format string.
+
+        Args:
+            date_format: strftime format string (e.g., "%d/%m/%Y").
+                Non-empty strings are applied to today's date; empty strings
+                are ignored.
+        """
         if date_format.strip():
             self._date = datetime.now().strftime(date_format)
 
@@ -86,6 +126,15 @@ class Config:
 
     @assets.setter
     def assets(self, assets) -> None:
+        """Set custom HTML assets (CSS and JavaScript files).
+
+        Only files that exist on the filesystem are retained; non-existent
+        paths are filtered out.
+
+        Args:
+            assets: Dict with optional "css" and "js" keys, each mapping to
+                a list of file paths (string).
+        """
         for key, value in assets.items():
             if key in ("css", "js") and value is not None:
                 self.assets[key] = [x for x in value if os.path.exists(x)]

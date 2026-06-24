@@ -9,9 +9,24 @@ class Jaffa(AbstractFusionTool):
     """Jaffa tool parser."""
 
     def set_header(self, header: str, delimiter: str | None = ",") -> None:
+        """Parse and store the CSV header line.
+
+        Args:
+            header: Raw header string read from the JAFFA output file.
+            delimiter: Column separator; default ``,``.
+        """
         self.header: List[str] = header.strip().split(delimiter)
 
     def parse(self, line: str, delimiter: str | None = ",") -> List[Tuple[str, Dict[str, Any]]]:
+        """Parse one data line from a JAFFA output file.
+
+        Args:
+            line: A single comma-separated data line (not the header).
+            delimiter: Column separator; default ``,``.
+
+        Returns:
+            List containing one ``(fusion_name, details)`` tuple.
+        """
         col: List[str] = [x.strip() for x in line.split(delimiter)]
 
         fusions = col[self.header.index("fusion genes")].split(":")

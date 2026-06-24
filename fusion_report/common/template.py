@@ -22,6 +22,16 @@ class Template:
     """
 
     def __init__(self, config_path: str, output_dir: str) -> None:
+        """Initialize Jinja2 template engine.
+
+        Sets up Jinja2 environment with template loaders for fusion_report
+        templates and modules directories, loads configuration from YAML file,
+        and ensures output directory exists.
+
+        Args:
+            config_path: Path to YAML configuration file (or None for defaults).
+            output_dir: Directory where rendered HTML files will be written.
+        """
         self.j2_env = Environment(
             loader=FileSystemLoader(
                 [
@@ -44,15 +54,34 @@ class Template:
             os.mkdir(output_dir)
 
     def render(self, page: Page, extra_variables: Dict[str, Any]) -> None:
-        """Renders page"""
+        """Render a page template to HTML file.
+
+        Merges configuration variables with extra page variables and renders
+        the page's view template, then writes the resulting HTML to file.
+
+        Args:
+            page: Page object containing title, view, and filename.
+            extra_variables: Dict of variables to pass to the template.
+        """
         merged_variables = {**self.j2_variables.json_serialize(), **extra_variables}
         view = self.j2_env.get_template(page.view).render(merged_variables)
         with open(os.path.join(self.output_dir, page.filename), "w", encoding="utf-8") as file_out:
             file_out.write(view)
 
     def include_raw(self, filename: str) -> Markup:
-        """Helper fusion for including raw content in Jinja2, mostly used to include custom
-        or vendor javascript and custom css"""
+        """Include raw file content in Jinja2 template.
+
+        Reads file content from the template loader and wraps it in appropriate
+        HTML tags (style for CSS, script for JavaScript). Used to embed custom
+        or vendor CSS and JavaScript directly in templates.
+
+        Args:
+            filename: Name of the CSS or JS file to include (relative to
+                template directories).
+
+        Returns:
+            Markup-wrapped HTML content (style/script tags or raw content).
+        """
         file_extension = Path(filename).suffix
         assert isinstance(self.j2_env.loader, FileSystemLoader)
 
@@ -73,5 +102,15 @@ class Template:
 
     @staticmethod
     def get_id(title: str) -> str:
-        """Generate html id tag from page title"""
+        """Generate HTML element ID from page title.
+
+        Converts title to lowercase and replaces spaces with underscores for
+        use as HTML id attributes.
+
+        Args:
+            title: Page title or text to convert.
+
+        Returns:
+            HTML-safe ID string (lowercase, underscores for spaces).
+        """
         return title.lower().replace(" ", "_")

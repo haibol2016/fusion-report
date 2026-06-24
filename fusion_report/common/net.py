@@ -1,3 +1,4 @@
+"""Network utilities for downloading and extracting databases."""
 import base64
 import glob
 import gzip
@@ -25,8 +26,29 @@ LOG = Logger(__name__)
 
 
 class Net:
+    """Network utilities for downloading and managing fusion databases.
+
+    Provides static methods for downloading COSMIC, FusionGDB2, and Mitelman
+    databases from their respective sources (Sanger, QIAGEN, remote hosts),
+    extracting archives, and decompressing files.
+    """
     @staticmethod
-    def get_cosmic_token(params: Namespace):
+    def get_cosmic_token(params: Namespace) -> str:
+        """Retrieve COSMIC authentication token.
+
+        Either uses a provided token directly, or generates a base64-encoded
+        token from username/password credentials.
+
+        Args:
+            params: Parsed arguments containing cosmic_token, cosmic_usr,
+                and cosmic_passwd.
+
+        Returns:
+            Base64-encoded COSMIC authentication token.
+
+        Raises:
+            DownloadException: If credentials are not provided correctly.
+        """
         if params.cosmic_token is not None:
             return params.cosmic_token
 
@@ -38,7 +60,20 @@ class Net:
             raise DownloadException("COSMIC credentials have not been provided correctly")
 
     @staticmethod
-    def run_qiagen_cmd(cmd, return_output=False, silent=False):
+    def run_qiagen_cmd(cmd: str, return_output: bool = False, silent: bool = False):
+        """Execute a shell command via QIAGEN API.
+
+        Runs command via /bin/bash, optionally capturing and returning output,
+        and optionally suppressing command echo.
+
+        Args:
+            cmd: Shell command to execute.
+            return_output: If True, capture and return command output.
+            silent: If True, suppress printing the command.
+
+        Returns:
+            Command output if return_output=True, otherwise None.
+        """
         if not silent:
             print(cmd)
         if return_output:
@@ -48,7 +83,19 @@ class Net:
             subprocess.check_call(cmd, shell=True, executable="/bin/bash")
 
     @staticmethod
-    def get_qiagen_files(token: str, output_path: str):
+    def get_qiagen_files(token: str, output_path: str) -> bytes:
+        """Fetch list of available COSMIC files from QIAGEN.
+
+        Retrieves file metadata (file_id, file_name, genome_draft) from QIAGEN
+        and saves to qiagen_files.tsv.
+
+        Args:
+            token: QIAGEN authentication token.
+            output_path: Directory where qiagen_files.tsv will be written.
+
+        Returns:
+            Command output from curl request.
+        """
         files_request = (
             "curl --stderr -s -X GET "
             '-H "Content-Type: application/octet-stream" '
@@ -60,7 +107,17 @@ class Net:
         return Net.run_qiagen_cmd(cmd, True, True)
 
     @staticmethod
-    def download_qiagen_file(token: str, file_id: str, output_path: str):
+    def download_qiagen_file(token: str, file_id: str, output_path: str) -> None:
+        """Download a specific COSMIC file from QIAGEN by file ID.
+
+        Downloads the file and saves it to the output path as the configured
+        COSMIC file name.
+
+        Args:
+            token: QIAGEN authentication token.
+            file_id: QIAGEN file ID for the COSMIC release.
+            output_path: Directory where the file will be downloaded.
+        """
         file_request = (
             "curl -s -X GET "
             '-H "Content-Type: application/octet-stream" '
@@ -77,7 +134,17 @@ class Net:
         Net.run_qiagen_cmd(cmd, True, True)
 
     @staticmethod
-    def fetch_fusion_file_id(output_path: str):
+    def fetch_fusion_file_id(output_path: str) -> str:
+        """Extract COSMIC fusion file ID from QIAGEN files list.
+
+        Parses qiagen_files.tsv to find the COSMIC GRCh38 fusion file ID.
+
+        Args:
+            output_path: Directory containing qiagen_files.tsv.
+
+        Returns:
+            File ID for the COSMIC fusion file.
+        """
         df = pd.read_csv(
             output_path + "/qiagen_files.tsv",
             names=["file_id", "file_name", "genome_draft"],
@@ -90,7 +157,18 @@ class Net:
         return file_id
 
     @staticmethod
-    def get_cosmic_qiagen_token(params: Namespace):
+    def get_cosmic_qiagen_token(params: Namespace) -> str:
+        """Retrieve COSMIC access token from QIAGEN using credentials.
+
+        Authenticates with QIAGEN OAuth endpoint using provided username
+        and password.
+
+        Args:
+            params: Parsed arguments containing cosmic_usr and cosmic_passwd.
+
+        Returns:
+            QIAGEN access token for downloading COSMIC files.
+        """
         token_request = (
             "curl -s -X POST "
             '-H "Content-Type: application/x-www-form-urlencoded" '
@@ -102,12 +180,24 @@ class Net:
         return json.loads(token_response)["access_token"]
 
     @staticmethod
-    def get_large_file(url: str, no_ssl) -> None:
-        """Method for downloading a large file."""
+    def get_large_file(url: str, no_ssl: bool) -> None:
+        """Download a large file from a URL with resumption support.
+
+        Downloads file in 8KB chunks. Resumes download if file already exists
+        and size differs from Content-Length header.
+
+        Args:
+            url: Full URL of the file to download.
+            no_ssl: If False, verify SSL certificates; if True, skip verification.
+
+        Raises:
+            DownloadException: If download fails.
+        """
         LOG.info(f"Downloading {url}")
         try:
             headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(url, headers=headers, stream=True, verify=no_ssl)
+            # no_ssl=True means disable SSL verification for this request.
+            response = requests.get(url, headers=headers, stream=True, verify=not no_ssl)
             file = url.split("/")[-1].split("?")[0]
 
             if (
@@ -124,7 +214,19 @@ class Net:
 
     @staticmethod
     def get_cosmic_from_sanger_url(token: str, file_path: str) -> str:
-        """Method for download COSMIC database from sanger website."""
+        """Get download URL for COSMIC database from Sanger website.
+
+        Queries Sanger API to retrieve the direct download URL for COSMIC
+        using the provided authentication token.
+
+        Args:
+            token: Base64-encoded COSMIC authentication token.
+            file_path: Path to file on Sanger server (e.g.,
+                "grch38/cosmic/v101/filename").
+
+        Returns:
+            Direct download URL for the file.
+        """
         params = {"path": file_path, "bucket": "downloads"}
         url = Settings.COSMIC["HOSTNAME"]
         headers = {"Authorization": f"Basic {token}"}
@@ -134,7 +236,16 @@ class Net:
 
     @staticmethod
     def extract_gz(file_path: str) -> str | None:
-        """Decompresses a .gz file."""
+        """Decompress a gzipped file.
+
+        Extracts .gz file to the same directory with the .gz extension removed.
+
+        Args:
+            file_path: Path to .gz file.
+
+        Returns:
+            Path to extracted file, or None if extraction fails.
+        """
         try:
             output_file = file_path.rsplit(".", 1)[0]  # Remove .gz extension
             with gzip.open(file_path, "rb") as f_in, open(output_file, "wb") as f_out:
@@ -147,7 +258,18 @@ class Net:
 
     @staticmethod
     def extract_tar(file_path: str, extract_to: str) -> str | None:
-        """Extracts a specific file from a tar archive."""
+        """Extract COSMIC file from tar archive.
+
+        Searches tar archive for Settings.COSMIC["FILE"] and extracts it to
+        the specified directory.
+
+        Args:
+            file_path: Path to tar archive.
+            extract_to: Directory where file will be extracted.
+
+        Returns:
+            Path to extracted file, or None if file not found or extraction fails.
+        """
         try:
             with tarfile.open(file_path, "r:") as tar:
                 target_file = Settings.COSMIC["FILE"]
@@ -164,8 +286,19 @@ class Net:
             return None
 
     @staticmethod
-    def get_cosmic_from_sanger(token: str, return_err: List[str], no_ssl, outputpath) -> None:
-        """Downloads the COSMIC database from the Sanger website."""
+    def get_cosmic_from_sanger(token: str, return_err: List[str], no_ssl: bool,
+                               outputpath: str) -> None:
+        """Download COSMIC database from Sanger website.
+
+        Retrieves download URL, downloads tar archive, extracts and decompresses
+        COSMIC TSV, renames it appropriately, and builds the SQLite database.
+
+        Args:
+            token: COSMIC authentication token.
+            return_err: List to append error messages to.
+            no_ssl: If True, skip SSL certificate verification.
+            outputpath: Output directory for database file.
+        """
         file_path = f"grch38/cosmic/{Settings.COSMIC['VERSION']}/{Settings.COSMIC['TARFILE']}"
         try:
             download_url = Net.get_cosmic_from_sanger_url(token, file_path=file_path)
@@ -190,8 +323,19 @@ class Net:
             return_err.append(f"Error processing request: {json_err}")
 
     @staticmethod
-    def get_cosmic_from_qiagen(token: str, return_err: List[str], outputpath: str) -> None:
-        """Method for download COSMIC database from QIAGEN."""
+    def get_cosmic_from_qiagen(token: str, return_err: List[str], outputpath: str,
+                               no_ssl: bool = True) -> None:
+        """Download COSMIC database from QIAGEN.
+
+        Retrieves file list from QIAGEN, finds the GRCh38 fusion file, downloads it,
+        decompresses, and builds the SQLite database.
+
+        Args:
+            token: QIAGEN access token.
+            return_err: List to append error messages to.
+            outputpath: Output directory for database file.
+            no_ssl: If True, skip SSL certificate verification.
+        """
         try:
             Net.get_qiagen_files(token, outputpath)
         except Exception as ex:
@@ -216,8 +360,17 @@ class Net:
             return_err.append(f'{Settings.COSMIC["NAME"]}: {ex}')
 
     @staticmethod
-    def get_fusiongdb2(self, return_err: List[str], no_ssl) -> None:
-        """Method for download FusionGDB2 database."""
+    def get_fusiongdb2(self, return_err: List[str], no_ssl: bool) -> None:
+        """Download and process FusionGDB2 database.
+
+        Downloads the TSV file from FusionGDB2 remote host, extracts gene pairs,
+        creates a CSV, and builds the SQLite database.
+
+        Args:
+            self: Unused (method signature for consistency with get_mitelman).
+            return_err: List to append error messages to.
+            no_ssl: If True, skip SSL certificate verification.
+        """
         try:
             url: str = f'{Settings.FUSIONGDB2["HOSTNAME"]}/{Settings.FUSIONGDB2["FILE"]}'
             Net.get_large_file(url, no_ssl)
@@ -235,8 +388,17 @@ class Net:
             return_err.append(f"FusionGDB2: {ex}")
 
     @staticmethod
-    def get_mitelman(self, return_err: List[str], no_ssl) -> None:
-        """Method for download Mitelman database."""
+    def get_mitelman(self, return_err: List[str], no_ssl: bool) -> None:
+        """Download and process Mitelman database.
+
+        Downloads ZIP archive from Mitelman remote host, extracts data files,
+        and builds the SQLite database.
+
+        Args:
+            self: Unused (method signature for consistency with get_fusiongdb2).
+            return_err: List to append error messages to.
+            no_ssl: If True, skip SSL certificate verification.
+        """
         try:
             url: str = f'{Settings.MITELMAN["HOSTNAME"]}/{Settings.MITELMAN["FILE"]}'
             Net.get_large_file(url, no_ssl)
@@ -252,16 +414,24 @@ class Net:
             return_err.append(f"Mitelman: {ex}")
 
     @staticmethod
-    def clean():
-        """Remove all files except *db and move to output dir."""
+    def clean() -> None:
+        """Move generated .db files to output directory and clean up.
+
+        Copies all .db files from the temporary working directory to the parent
+        output directory, then removes the temporary directory tree.
+        """
         for temp in glob.glob("*.db"):
             shutil.copy(temp, "../")
         os.chdir("../")
         shutil.rmtree("tmp_dir")
 
     @staticmethod
-    def timestamp():
-        """Create a timestamp file at DB creation"""
+    def timestamp() -> None:
+        """Create a timestamp file recording database creation time.
+
+        Writes the current date and time in "YYYY-MM-DD/HH:MM" format to
+        DB-timestamp.txt in the current working directory.
+        """
         timestr = time.strftime("%Y-%m-%d/%H:%M")
         text_file = open("DB-timestamp.txt", "w")
         text_file.write(timestr)

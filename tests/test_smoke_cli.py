@@ -1,3 +1,5 @@
+"""Smoke tests for CLI help commands."""
+
 import os
 import subprocess
 import sys
@@ -16,6 +18,14 @@ pytestmark = pytest.mark.skipif(
 
 
 def run_cli(*args: str) -> subprocess.CompletedProcess:
+    """Execute the CLI script with provided arguments.
+
+    Args:
+        *args: Command-line arguments passed to ``bin/fusion_report``.
+
+    Returns:
+        CompletedProcess with stdout/stderr and return code.
+    """
     env = os.environ.copy()
     env["PYTHONPATH"] = str(REPO_ROOT)
     return subprocess.run(
@@ -29,24 +39,28 @@ def run_cli(*args: str) -> subprocess.CompletedProcess:
 
 
 def test_cli_help_top_level() -> None:
+    """Verify top-level CLI help command exits successfully."""
     result = run_cli("--help")
     assert result.returncode == 0, result.stderr
     assert "{run,download,createdb}" in result.stdout
 
 
 def test_cli_help_run() -> None:
+    """Verify help output for the ``run`` subcommand."""
     result = run_cli("run", "--help")
     assert result.returncode == 0, result.stderr
     assert "usage: fusion_report run" in result.stdout
 
 
 def test_cli_help_download() -> None:
+    """Verify help output for the ``download`` subcommand."""
     result = run_cli("download", "--help")
     assert result.returncode == 0, result.stderr
     assert "usage: fusion_report download" in result.stdout
 
 
 def test_cli_help_createdb() -> None:
+    """Verify help output for the ``createdb`` subcommand."""
     result = run_cli("createdb", "--help")
     assert result.returncode == 0, result.stderr
     assert "usage: fusion_report createdb" in result.stdout

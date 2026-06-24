@@ -19,6 +19,18 @@ class Download:
     """
 
     def __init__(self, params: Namespace):
+        """Initialize and execute database downloads.
+
+        Downloads all requested databases (Cosmic, Mitelman, FusionGDB2) to the
+        specified output directory. Creates temporary working directory and
+        records download timestamp.
+
+        Args:
+            params: Parsed arguments containing download options and credentials.
+
+        Raises:
+            DownloadException: If any database download fails.
+        """
         self.download_all(params)
 
     def validate(self, params: Namespace) -> None:
@@ -29,11 +41,26 @@ class Download:
             self.cosmic_token = Net.get_cosmic_token(params)
 
     def download_all(self, params: Namespace) -> None:
+        """Download all requested databases to output directory.
+
+        Creates a temporary working directory, downloads Mitelman, FusionGDB2,
+        and/or COSMIC based on command-line flags, aggregates errors, and
+        records download timestamp. Requires COSMIC credentials to be validated
+        before calling this method if COSMIC download is requested.
+
+        Args:
+            params: Parsed arguments containing:
+                - output: Output directory for downloaded files
+                - no_mitelman, no_fusiongdb2, no_cosmic: Skip flags for databases
+                - no_ssl: Disable SSL certificate verification (if True)
+                - qiagen: Use QIAGEN API for COSMIC (if True)
+
+        Raises:
+            DownloadException: If any database download fails.
+        """
         # making sure output directory exists
         if not os.path.exists(params.output):
             os.makedirs(params.output, 0o755)
-
-        """Download all databases."""
         return_err: List[str] = []
         tmp_dir = os.path.join(params.output, "tmp_dir")
         if not os.path.exists(tmp_dir):

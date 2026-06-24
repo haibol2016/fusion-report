@@ -19,6 +19,15 @@ class Page(BasePage):
         filename: str = None,
         page_variables: Dict[str, Any] = None,
     ) -> None:
+        """Initialize a page with optional template variables.
+
+        Args:
+            title: Page title, displayed in the header.
+            view: View template name (without path or .html extension).
+            filename: Optional HTML filename; if None, derived from title.
+            page_variables: Optional dict of extra variables passed to the
+                template rendering engine.
+        """
         self.__page_variables = {} if not page_variables else page_variables
         super().__init__(title, view, filename)
 

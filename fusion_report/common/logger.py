@@ -21,6 +21,15 @@ class Logger(metaclass=Singleton):
     logger: Any = {}
 
     def __init__(self, name: str) -> None:
+        """Initialize the application logger.
+
+        Sets up a singleton logger with two handlers: one for logging
+        CRITICAL/ERROR/WARNING to a rotating file (fusion_report.log),
+        and one for logging INFO and above to stdout with colored output.
+
+        Args:
+            name: Logger name (typically __name__ of calling module).
+        """
         if not self.logger:
             self.logger = logging.getLogger(name)
             self.filename = "fusion_report.log"
@@ -44,8 +53,14 @@ class Logger(metaclass=Singleton):
         """Error logger."""
         self.logger.error(msg, *args)
 
-    def fatal(self, msg, *args, **kwargs):
-        """Fatal logger."""
+    def fatal(self, msg, *args, **kwargs) -> None:
+        """Log a fatal error message.
+
+        Args:
+            msg: Message to log.
+            *args: Positional arguments for message formatting.
+            **kwargs: Keyword arguments (e.g., exc_info=True for exceptions).
+        """
         self.logger.fatal(msg, *args, **kwargs)
 
     def info(self, msg: str, *args) -> None:

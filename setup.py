@@ -1,8 +1,11 @@
+"""Package build configuration for fusion-report."""
+
 from setuptools import find_packages, setup
 
 PACKAGE_DATA = {
     "fusion_report": [
         "arguments.json",
+        "data/hgnc/*.gz",
         "data/schema/*.sql",
         "templates/*",
         "templates/*/*",

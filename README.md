@@ -10,16 +10,26 @@ This python script generates an interactive summary report from fusion detection
 
 > **TL;DR**: Live demo [here](https://clinical-genomics.github.io/fusion-report/example/).
 
+## How it works
+
+Fusion-report aggregates fusion gene calls from one or more supported detection tools, canonicalizes gene symbols against the HGNC approved vocabulary, and cross-references each fusion pair against three curated databases (COSMIC, FusionGDB2, Mitelman). Each fusion is then scored with a **Fusion Indication Index (FII)** that reflects how many databases support the event and how many tools detected it. The final output is a self-contained interactive HTML report — one page per fusion, plus an index dashboard — together with TSV/JSON export files and a filtered fusion list for downstream tools such as FusionInspector.
+
+The workflow has three steps:
+
+1. **`fusion_report download`** — fetch and build the local SQLite databases (COSMIC, FusionGDB2, Mitelman). Only needed once; databases can also be created from locally downloaded files using `fusion_report createdb`.
+2. **`fusion_report run`** — parse tool output files, resolve and deduplicate fusion calls, enrich with database annotations, compute FII scores, and render the HTML report.
+3. *(Optional)* Pass the generated `fusion_list_filtered.tsv` to FusionInspector for read-level visualisation of high-confidence events.
+
 ## Supported tools
 
 * [STAR-Fusion](https://github.com/STAR-Fusion/STAR-Fusion)
 * [EricScript](https://sites.google.com/site/bioericscript/)
 * [Pizzly](https://github.com/pmelsted/pizzly)
 * [Squid](https://github.com/Kingsford-Group/squid)
-* [Dragen](https://emea.illumina.com/products/by-type/informatics-products/dragen-bio-it-platform.html)
+* [Dragen](https://emea.illumina.com/products/by-type/informatics-products/dragen-bio-it-platform.html) ⚠️ Dragen fusion calls are parsed as-is; results are known to have a high false-positive rate and should be filtered or interpreted with caution.
 * [Arriba](https://github.com/suhrig/arriba)
-* [Illumina Dragen](https://emea.illumina.com/products/by-type/informatics-products/dragen-bio-it-platform.html)
 * [Jaffa](https://github.com/Oshlack/JAFFA)
+* [FusionCatcher](https://github.com/ndaniel/fusioncatcher)
 * [CTAT-LR-Fusion](https://github.com/TrinityCTAT/CTAT-LR-fusion)
 
 ## Installation
@@ -56,6 +66,7 @@ fusion_report run "<SAMPLE NAME>" /path/to/output /path/to/db/ \
   --squid tests/test_data/squid.txt \
   --starfusion tests/test_data/starfusion.tsv \
   --jaffa tests/test_data/jaffa.csv \
+  --fusioncatcher tests/test_data/fusioncatcher.txt \
   --allow-multiple-gene-symbols # in case gene symbol in fusion can't be determined, treat each provided fusion as a separate one.
 ```
 
@@ -91,6 +102,20 @@ docker run --rm \
 ```
 
 For more info on how to run the script, please see the [documentation](https://clinical-genomics.github.io/fusion-report/).
+
+## HGNC Resolver Environment Variables
+
+The HGNC resolver loads mappings in this order:
+
+1. Download from HGNC
+2. Local cache
+3. Bundled gzip snapshot
+4. Strict failure (optional)
+
+Environment variables:
+
+- `FUSION_REPORT_HGNC_STRICT`: If set to `1`/`true`/`yes`/`on`, fail when HGNC data cannot be loaded from any source.
+- `FUSION_REPORT_HGNC_BUNDLED_PATH`: Optional path to a local HGNC gzip snapshot (`.txt.gz`) used as bundled fallback.
 
 ## Documentation
 

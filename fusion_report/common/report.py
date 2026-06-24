@@ -15,6 +15,15 @@ class Report(Template):
     """
 
     def __init__(self, config_path: str, output_dir: str) -> None:
+        """Initialize a report container.
+
+        Sets up the report with configuration (logos, titles, assets) and
+        output directory. Initializes empty pages list for adding pages.
+
+        Args:
+            config_path: Path to YAML configuration file.
+            output_dir: Directory where rendered HTML pages will be written.
+        """
         self.pages: List[Page] = []
         super().__init__(config_path, output_dir)
 
@@ -58,8 +67,17 @@ class Report(Template):
 
         return self.pages[index]
 
-    def render(self, page: Page, extra_variables: Dict[str, Any] = None):
-        """Method for rendering page using templating engine."""
+    def render(self, page: Page, extra_variables: Dict[str, Any] = None) -> None:
+        """Render a page to HTML using the templating engine.
+
+        Collects page content, modules, and menu items, then renders to HTML
+        file. Module menu items are extracted and made available in the template.
+
+        Args:
+            page: Page object to render.
+            extra_variables: Optional dict of additional variables to pass
+                to the template.
+        """
         template_variables: Dict[str, Any] = page.get_content()
 
         # load modules

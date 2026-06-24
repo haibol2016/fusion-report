@@ -36,6 +36,14 @@ class App:
     """
 
     def __init__(self) -> None:
+        """Initialize the application.
+
+        Sets up the argument builder and fusion manager for processing fusion
+        detection tool outputs.
+
+        Raises:
+            AppException: If argument builder initialization fails.
+        """
         try:
             self.args = ArgsBuilder()
             self.manager = FusionManager(self.args.supported_tools)
@@ -101,11 +109,11 @@ class App:
         with tqdm(total=len(fusions)) as pbar:
             for fusion in fusions:
                 fusion_page = report.create_page(
-                    fusion.name, page_variables={"sample": params.sample}
+                    fusion.page_title, page_variables={"sample": params.sample}
                 )
                 fusion_page.add_module("fusion_summary", params={"fusion": fusion})
                 report.render(fusion_page)
-                pbar.set_description(f"Processing {fusion.name}")
+                pbar.set_description(f"Processing {fusion.page_title}")
                 time.sleep(0.1)
                 pbar.update(1)
 
@@ -118,35 +126,59 @@ class App:
                 self.manager.parse(param, value, params["allow_multiple_gene_symbols"])
 
     def enrich(self, params: Namespace) -> None:
-        """Enrich fusion with all relevant information from local databases."""
+        """Enrich fusions with information from local databases.
+
+        Queries Cosmic, FusionGDB2, and Mitelman databases to annotate each
+        detected fusion with supporting database hits. Fusions are marked with
+        the databases in which they appear.
+
+        Args:
+            params: Parsed command-line parameters containing database flags
+                (no_cosmic, no_fusiongdb2, no_mitelman) and db_path.
+        """
         local_fusions: Dict[str, List[str]] = {}
+        local_hgnc_pairs: Dict[str, set[str]] = {}
         include_cosmic = not params.no_cosmic
         include_fusiongdb2 = not params.no_fusiongdb2
         include_mitelman = not params.no_mitelman
 
         if include_cosmic:
-            local_fusions.update(
-                {CosmicDB(params.db_path).name: CosmicDB(params.db_path).get_all_fusions()}
-            )
+            cosmic_db = CosmicDB(params.db_path)
+            local_fusions[cosmic_db.name] = cosmic_db.get_all_fusions()
+            local_hgnc_pairs[cosmic_db.name] = set(cosmic_db.get_all_hgnc_pairs())
 
         if include_fusiongdb2:
-            local_fusions.update(
-                {FusionGDB2(params.db_path).name: FusionGDB2(params.db_path).get_all_fusions()}
-            )
+            fusiongdb2_db = FusionGDB2(params.db_path)
+            local_fusions[fusiongdb2_db.name] = fusiongdb2_db.get_all_fusions()
+            local_hgnc_pairs[fusiongdb2_db.name] = set(fusiongdb2_db.get_all_hgnc_pairs())
 
         if include_mitelman:
-            local_fusions.update(
-                {MitelmanDB(params.db_path).name: MitelmanDB(params.db_path).get_all_fusions()}
-            )
+            mitelman_db = MitelmanDB(params.db_path)
+            local_fusions[mitelman_db.name] = mitelman_db.get_all_fusions()
+            local_hgnc_pairs[mitelman_db.name] = set(mitelman_db.get_all_hgnc_pairs())
 
         for fusion in self.manager.fusions:
+            hgnc_pair = None
+            if fusion.gene1_hgnc_id and fusion.gene2_hgnc_id:
+                hgnc_pair = f"{fusion.gene1_hgnc_id}--{fusion.gene2_hgnc_id}"
+
             for db_name, db_list in local_fusions.items():
+                if hgnc_pair and hgnc_pair in local_hgnc_pairs.get(db_name, set()):
+                    fusion.add_db(db_name)
+                    continue
                 if fusion.name in db_list:
                     fusion.add_db(db_name)
 
     def export_results(self, path: str, extension: str) -> None:
-        """Export results.
-        Currently supporting file types: JSON and CSV
+        """Export fusion results to JSON or CSV format.
+
+        Writes all detected fusions to a file with the specified extension.
+        JSON format includes full fusion metadata; CSV includes fusion name,
+        databases, FII score, and per-tool details.
+
+        Args:
+            path: Directory where the output file will be written.
+            extension: Output format; either "json" or "csv".
         """
         dest = f"{os.path.join(path, 'fusions')}.{extension}"
         if extension == "json":
@@ -182,15 +214,19 @@ class App:
         else:
             Logger(__name__).error("Export output %s not supported", extension)
 
-    def generate_fusion_list(self, path: str, cutoff: int):
-        """
-        Helper function that generates file containing list of found fusions and filtered list of
-        fusions. One of these files is used by FusionInspector to visualize the fusions.
-        Input for FusionInspector expects list of fusions in format `geneA--geneB\n`.
+    def generate_fusion_list(self, path: str, cutoff: int) -> None:
+        """Generate unfiltered and filtered fusion lists for downstream tools.
 
-        Returns:
-            - fusions_list.tsv
-            - fusions_list_filtered.tsv
+        Creates two TSV files for FusionInspector visualization:
+        - fusions_list.tsv: All detected fusions
+        - fusions_list_filtered.tsv: Fusions meeting the tool-support cutoff
+
+        Each file contains one fusion per line in format `geneA--geneB`.
+
+        Args:
+            path: Directory where output files will be written.
+            cutoff: Minimum number of tools required for fusion inclusion in
+                filtered list.
         """
         # unfiltered list
         with open(os.path.join(path, "fusion_list.tsv"), "w", encoding="utf-8") as output:

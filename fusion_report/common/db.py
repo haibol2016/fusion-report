@@ -19,6 +19,17 @@ class Db:
     """
 
     def __init__(self, path: str, name: str, schema: str) -> None:
+        """Initialize database connection.
+
+        Creates a SQLite database file in the specified path with the given
+        name and schema. Establishes a connection and configures result
+        formatting to return dictionaries instead of tuples.
+
+        Args:
+            path: Directory where the .db file will be created.
+            name: Database name (used for .db filename).
+            schema: Schema filename (relative to data/schema/).
+        """
         self.name: str = name
         self._schema: str = schema
         self.database: str = f"{name.lower()}.db"
@@ -78,8 +89,15 @@ class Db:
         except (IOError, sqlite3.Error) as ex:
             raise DbException(ex) from ex
 
-    def create_database(self):
-        """Build database from schema file."""
+    def create_database(self) -> None:
+        """Build database schema from SQL file.
+
+        Executes the schema file (SQL statements) to create all required
+        tables and indexes.
+
+        Raises:
+            DbException: If schema execution fails.
+        """
         with open(self.schema, "r", encoding="utf-8") as schema:
             self.connection.executescript(schema.read().lower())
 
@@ -126,7 +144,18 @@ class Db:
 
     @classmethod
     def __dict_factory(cls, cursor, row):
-        """Helper class for converting SQL results into dictionary"""
+        """Convert SQL result row to dictionary.
+
+        Maps column names from cursor description to row values, enabling
+        dict-like access to query results instead of tuple indexing.
+
+        Args:
+            cursor: Database cursor with description metadata.
+            row: Result row tuple.
+
+        Returns:
+            Dict mapping column names to row values.
+        """
         tmp_dictionary = {}
         for idx, col in enumerate(cursor.description):
             tmp_dictionary[col[0]] = row[idx]

@@ -9,12 +9,37 @@ class Squid(AbstractFusionTool):
     """Squid tool parser."""
 
     def set_header(self, header: str, delimiter: str | None = "\t") -> None:
+        """Parse and store the TSV header line.
+
+        Args:
+            header: Raw header string read from the SQUID output file.
+            delimiter: Column separator; default ``"\\t"``.
+        """
         self.header: List[str] = header.strip().split(delimiter)
 
     def parse_multiple(self, col: str, delimiter: str) -> List[str]:
+        """Convert SQUID fused-gene field into fusion names.
+
+        Args:
+            col: Raw fused genes string (e.g. ``GENE1:GENE2,...``).
+            delimiter: Delimiter separating multiple fusions.
+
+        Returns:
+            List of fusion names in ``GENE1--GENE2`` format.
+        """
         return [fusion.replace(":", "--") for fusion in col.split(delimiter)]
 
     def parse(self, line: str, delimiter: str | None = "\t") -> List[Tuple[str, Dict[str, Any]]]:
+        """Parse one data line from a SQUID output file.
+
+        Args:
+            line: A single tab-separated data line (not the header).
+            delimiter: Column separator; default ``"\\t"``.
+
+        Returns:
+            List of ``(fusion_name, details)`` tuples, or ``[("", {})]`` for
+            rows labeled as non-fusion-gene.
+        """
         col: List[str] = [x.strip() for x in line.split(delimiter)]
         if col[self.header.index("Type")].strip() == "non-fusion-gene":
             return [("", {})]

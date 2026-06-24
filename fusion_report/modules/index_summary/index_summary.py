@@ -1,9 +1,13 @@
+"""Index summary module for dashboard-level report content."""
+
 from typing import Any, Dict, List
 
 from fusion_report.modules.base_module import BaseModule
 
 
 class CustomModule(BaseModule):
+    """Build aggregate dashboard metrics and fusion tables for the index page."""
+
     def known_vs_unknown(self) -> List[List[Any]]:
         """Returns list of number of known  and unknown fusions.
 

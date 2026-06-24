@@ -11,6 +11,12 @@ class ModuleLoader:
     """In-house loader for custom modules."""
 
     def __init__(self, manager=None, params=None) -> None:
+        """Initialize module loader context.
+
+        Args:
+            manager: Fusion manager passed to modules.
+            params: Optional module parameters.
+        """
         self.manager = manager
         self.params = params
 

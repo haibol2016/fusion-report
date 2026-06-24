@@ -18,6 +18,12 @@ class FusionManager:
     """
 
     def __init__(self, supported_tools: List[str]) -> None:
+        """Initialize fusion manager state.
+
+        Args:
+            supported_tools: Names of all parser tools accepted by this
+                manager.
+        """
         self.fusions: List[Fusion] = []
         self.running_tools: Set[str] = set()
         self.supported_tools: List[str] = supported_tools
@@ -50,19 +56,26 @@ class FusionManager:
             )
 
     def add(self, fusion_name: str, tool: str, details: Dict[str, Any]) -> None:
-        """Insert of append new parsed information to specific fusion."""
+        """Insert or append new parsed information to specific fusion.
+
+        The fusion name is canonicalized (HGNC-resolved) before deduplication.
+        Two events are considered the same fusion only if they share the same
+        canonical gene pair AND the same breakpoint position.  Different
+        breakpoints between the same gene pair (e.g. in synthetic references)
+        are stored as separate Fusion entries.
+        """
         if fusion_name and tool:
-            index = self.index_by(fusion_name)
+            fusion = Fusion(fusion_name, details)
+            position = details.get("position") if details else None
+            index = self.index_by(fusion.name, position)
             if index == -1:
-                fusion = Fusion(fusion_name)
                 fusion.add_tool(tool, details)
                 self.fusions.append(fusion)
             else:
-                fusion = self.fusions[index]
-                fusion.add_tool(tool, details)
+                self.fusions[index].add_tool(tool, details)
 
     def get_known_fusions(self) -> List[Fusion]:
-        """Returns list of all fusions found in local databases."""
+        """Return fusions that were matched in at least one database."""
         return [fusion for fusion in self.fusions if fusion.dbs]
 
     ################################################################################################
@@ -86,14 +99,26 @@ class FusionManager:
         except AttributeError as ex:
             raise AppException(ex) from ex
 
-    def index_by(self, value: str) -> int:
-        """Helper for finding fusion based on its name.
+    def index_by(self, name: str, position: str | None = None) -> int:
+        """Find a fusion by canonical name and optionally breakpoint position.
+
+        Two records are treated as the same fusion event when they share the
+        same canonical gene-pair name AND the same position string.  If
+        ``position`` is None (e.g. Pizzly which has no breakpoint coordinates)
+        the lookup falls back to name-only matching.
 
         Returns:
-            >=0 index of a fusion in the list
+            >=0 index of a matching fusion in the list
             -1: not found
         """
         for index, fusion in enumerate(self.fusions):
-            if fusion.name == value:
+            if fusion.name != name:
+                continue
+            if position is None:
                 return index
+            # Match on position: check whether any already-stored tool detail
+            # carries the same position string.
+            for stored_details in fusion.tools.values():
+                if stored_details.get("position") == position:
+                    return index
         return -1

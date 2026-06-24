@@ -18,6 +18,14 @@ class BasePage:
     """
 
     def __init__(self, title: str, view: str, filename: str = None) -> None:
+        """Initialize a page.
+
+        Args:
+            title: Page title, displayed in the header.
+            view: View template name (without path or .html extension).
+            filename: Optional HTML filename; if None, derived from title
+                by sanitizing special characters.
+        """
         self.title: str = title.strip()
         self.view: str = f"views/{view}.html"
         self.modules: Dict[str, Any] = {}
@@ -39,13 +47,17 @@ class BasePage:
         """Helper function for setting proper filename.
 
         Args:
-            fusion ([str]): Fusion name
+            fusion ([str]): Fusion name or page title
 
         Returns:
             str: filename of the fusion
         """
-        for char in ["/", "\\", "--"]:
+        for char in ["/", "\\", "--", "[", "]", " ", ":"]:
             if char in fusion:
                 fusion = fusion.replace(char, "_")
+
+        # Collapse multiple consecutive underscores
+        import re
+        fusion = re.sub(r"_+", "_", fusion).strip("_")
 
         return f"{fusion}.html"
