@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a direct documentation index in `README.md` with links to all main docs files for easier navigation in GitHub.
 - Updated Docker examples to include `-u "$(id -u):$(id -g)"` so generated files are owned by the invoking host user.
 - Verified Docker image execution with `tests/test_data` and `--no-cosmic`: report generation completes with FusionGDB2+Mitelman enrichment while COSMIC is excluded.
+- Updated `Dockerfile` runtime defaults to set `LANG/LC_ALL=C.UTF-8` and install `ca-certificates` to improve container locale/TLS behavior.
+- Added optional Docker build arg `CORPORATE_CA_PEM_B64` to inject a custom CA certificate into the runtime trust store (`update-ca-certificates`) for TLS-intercepted environments.
 
 ### Added
 
